@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 데이터베이스 설정: PostgreSQL 사용
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // 데이터베이스 연결 URL은 환경 변수에서 가져옵니다.
+}
+
+// ------------------------------
+// ENUM: 운동 유형
+// ------------------------------
+enum ExerciseType {
+  달리기
+  자전거
+  수영
+}
+
+// ------------------------------
+// MODEL: 그룹 (Group)
+// ------------------------------
+model Group {
+  // 기본 정보
+  id                String    @id @default(uuid())
+  name              String
+  description       String
+  photoUrl          String?
+  goalRep           Int       // 목표 값 (목표 반복/점수)
+  tags              String[]  @default([])
+  discordWebhookUrl String?
+  discordInviteUrl  String?
+
+  // 랭킹 및 통계 관련 필드
+  likeCount         Int       @default(0) // 좋아요 수 (랭킹 기준 중 하나)
+  badges            String[]  @default([])
+
+  // 관계 설정
+  // 소유자 (owner): 1:N 관계 (Participant -> Group)
+  owner             Participant @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId           String
+
+  // 참가자들 (participants): N:M 관계 (Group <-> Participant)
+  participants      Participant[] @relation("GroupParticipants")
+  
+  // 기록 (records): 1:N 관계 (Group -> Record)
+  records           Record[]
+
+  // 시간 기록
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("group")
+}
+
+// ------------------------------
+// MODEL: 참가자 (Participant)
+// ------------------------------
+model Participant {
+  // 기본 정보
+  id       String @id @default(uuid())
+  nickname String @unique // 닉네임은 전역적으로 고유해야 함
+  password String
+
+  // 관계 설정
+  // 소속 그룹 (group): N:1 관계 (Participant -> Group)
+  group    Group    @relation("GroupParticipants", fields: [groupId], references: [id], onDelete: Cascade)
+  groupId  String
+
+  // 소유 그룹 (ownedGroups): 1:N 관계 (Participant -> Group)
+  ownedGroups Group[]  @relation("GroupOwner")
+  
+  // 기록 (records): 1:N 관계 (Participant -> Record)
+  records     Record[]
+
+  // 시간 기록
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // * 이미지에 언급된 추가 제약 조건
+  // @@unique([groupId, nickname]) // 그룹 내 닉네임 고유성 필요 시 활성화
+
+  @@map("participant")
+}
+
+// ------------------------------
+// MODEL: 운동 기록 (Record)
+// ------------------------------
+model Record {
+  // 기본 정보
+  id           String       @id @default(uuid())
+  exerciseType ExerciseType // 운동 유형 (달리기/자전거/수영)
+  description  String
+  time         Int          // 운동 시간 (초 단위)
+  distance     Float        // 운동 거리 (Float)
+  photos       String[]     @default([])
+
+  // 관계 설정
+  // 소속 그룹 (group): N:1 관계 (Record -> Group)
+  group        Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId      String
+
+  // 작성자 (author): N:1 관계 (Record -> Participant)
+  author       Participant @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId     String
+
+  // 시간 기록
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("record")
+}
