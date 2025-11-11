@@ -1,12 +1,21 @@
-// src/services/record.service.js
+// src/services/record.service.js (권장 구조)
 
-// NOTE: 이 파일이 record.controller.js에 의해 import됩니다.
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 class RecordService {
-  // 기록 목록 조회 로직의 플레이스홀더
-  async getRecords() {
-    // 실제 DB 쿼리 로직이 들어갈 곳
-    return [];
+  // ⬇️ 파라미터 추가 (정렬, 검색, 페이지네이션 지원)
+  async getRecords({ limit = 10, offset = 0, sortBy = "latest", search = "" }) {
+    // ⚠️ 여기에 실제 ORM 쿼리 로직이 들어갑니다.
+    // 이 로직은 sortBy, search, limit/offset을 사용해야 합니다.
+
+    const records = await prisma.record.findMany({
+      // 예시: orderBy, where 조건 추가
+      // orderBy: { time: sortBy === 'time' ? 'desc' : undefined, createdAt: sortBy === 'latest' ? 'desc' : undefined },
+      // take: limit, skip: offset,
+    });
+
+    return records;
   }
 }
 
